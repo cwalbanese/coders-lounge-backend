@@ -1,50 +1,197 @@
 const express = require('express');
 const User = require('../models/user');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
+const UserSession = require('../models/usersession');
 
-function verifyToken(req, res, next) {
-  const bearerHeader = req.headers['authorization'];
-  if (typeof bearerHeader !== 'undefined') {
-    const bearer = bearerHeader.split(' ');
-    const bearerToken = bearer[1];
-    req.token = bearerToken;
-    next();
-  } else {
-    res.sendStatus(403);
-  }
-}
-
-router.get('/', verifyToken, (req, res) => {
-  jwt.verify(req.token, 'secretkey', (err, authData) => {
-    if (err) {
-      res.sendStatus(403);
-    } else {
-      User.find({}).then((users) => res.json(users));
-    }
-  });
+router.get('/', (req, res) => {
+  User.find({}).then((users) => res.json(users));
 });
 
 router.get('/:id', (req, res) => {
   User.findOne({ _id: req.params.id }).then((user) => res.json(user));
 });
 
-router.post('/', (req, res) => {
-  User.create(req.body).then((user) => {
-    res.json(user);
-  });
+router.get('/verify', (req, res, next) => {
+  const { query } = req;
+  const { token } = query;
+
+  UserSession.find(
+    {
+      _id: token,
+      isDeleted: false,
+    },
+    (err, sessions) => {
+      if (err) {
+        console.log(err);
+        return res.send({
+          success: false,
+          message: 'Error: Server error',
+        });
+      }
+      if (sessions.length != 1) {
+        return res.send({
+          success: false,
+          message: 'Error: Invalid',
+        });
+      } else {
+        return res.send({
+          success: true,
+          message: 'Good',
+        });
+      }
+    }
+  );
 });
 
-router.post('/login', (req, res) => {
-  const user = {
-    username: req.body.username,
-    password: req.body.password,
-  };
-  jwt.sign({ user: user }, 'secretkey', (err, token) => {
-    res.json({
-      token: token,
+router.post('/login', (req, res, next) => {
+  const { body } = req;
+  const { password } = body;
+  let { username } = body;
+  if (!username) {
+    return res.send({
+      success: false,
+      message: 'Error: Username cannot be blank.',
     });
-  });
+  }
+  if (!password) {
+    return res.send({
+      success: false,
+      message: 'Error: Password cannot be blank.',
+    });
+  }
+  username = username.toLowerCase();
+  username = username.trim();
+  User.find(
+    {
+      username: username,
+    },
+    (err, users) => {
+      if (err) {
+        console.log('err 2:', err);
+        return res.send({
+          success: false,
+          message: 'Error: server error',
+        });
+      }
+      if (users.length != 1) {
+        return res.send({
+          success: false,
+          message: 'Error: Invalid',
+        });
+      }
+      const user = users[0];
+      if (!user.validPassword(password)) {
+        return res.send({
+          success: false,
+          message: 'Error: Invalid',
+        });
+      }
+
+      const userSession = new UserSession();
+      userSession.userId = user._id;
+      userSession.save((err, doc) => {
+        if (err) {
+          console.log(err);
+          return res.send({
+            success: false,
+            message: 'Error: server error',
+          });
+        }
+        return res.send({
+          success: true,
+          message: '',
+          token: doc._id,
+        });
+      });
+    }
+  );
+});
+
+router.get('/logout', (req, res, next) => {
+  const { query } = req;
+  const { token } = query;
+
+  UserSession.findOneAndUpdate(
+    {
+      _id: token,
+      isDeleted: false,
+    },
+    {
+      $set: {
+        isDeleted: true,
+      },
+    },
+    null,
+    (err, sessions) => {
+      if (err) {
+        console.log(err);
+        return res.send({
+          success: false,
+          message: 'Error: Server error',
+        });
+      }
+      return res.send({
+        success: true,
+        message: 'Good',
+      });
+    }
+  );
+});
+
+router.post('/signup', (req, res, next) => {
+  const { body } = req;
+  const { password } = body;
+  let { username } = body;
+
+  if (!username) {
+    return res.send({
+      success: false,
+      message: 'Error: Username cannot be blank.',
+    });
+  }
+  if (!password) {
+    return res.send({
+      success: false,
+      message: 'Error: Password cannot be blank.',
+    });
+  }
+  username = username.toLowerCase();
+  username = username.trim();
+
+  User.find(
+    {
+      username: username,
+    },
+    (err, previousUsers) => {
+      if (err) {
+        return res.send({
+          success: false,
+          message: 'Error: Server error',
+        });
+      } else if (previousUsers.length > 0) {
+        return res.send({
+          success: false,
+          message: 'Error: Account already exist.',
+        });
+      }
+
+      const newUser = new User();
+      newUser.username = username;
+      newUser.password = newUser.generateHash(password);
+      newUser.save((err, user) => {
+        if (err) {
+          return res.send({
+            success: false,
+            message: 'Error: Server error',
+          });
+        }
+        return res.send({
+          success: true,
+          message: 'Signed up',
+        });
+      });
+    }
+  );
 });
 
 router.put('/update/:id', (req, res) => {
