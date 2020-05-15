@@ -91,7 +91,6 @@ router.post('/login', (req, res, next) => {
       userSession.userId = user._id;
       userSession.save((err, doc) => {
         if (err) {
-          console.log(err);
           return res.send({
             success: false,
             message: 'Error: server error',
@@ -110,7 +109,7 @@ router.post('/login', (req, res, next) => {
 router.get('/logout', (req, res, next) => {
   const { query } = req;
   const { token } = query;
-
+  console.log(token);
   UserSession.findOneAndUpdate(
     {
       _id: token,
@@ -146,13 +145,13 @@ router.post('/signup', (req, res, next) => {
   if (!username) {
     return res.send({
       success: false,
-      message: 'Error: Username cannot be blank.',
+      message: 'error: username cannot be blank.',
     });
   }
   if (!password) {
     return res.send({
       success: false,
-      message: 'Error: Password cannot be blank.',
+      message: 'error: password cannot be blank.',
     });
   }
   username = username.toLowerCase();
@@ -180,6 +179,7 @@ router.post('/signup', (req, res, next) => {
       newUser.password = newUser.generateHash(password);
       newUser.save((err, user) => {
         if (err) {
+          console.log(err);
           return res.send({
             success: false,
             message: 'Error: Server error',

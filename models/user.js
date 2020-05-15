@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true },
   password: { type: String, required: true },
-  _id: { type: String, required: true },
+  _id: { type: String },
 });
 
 UserSchema.methods.generateHash = function (password) {
