@@ -2,6 +2,7 @@ const express = require('express');
 const User = require('../models/user');
 const router = express.Router();
 const UserSession = require('../models/usersession');
+const mongoose = require('mongoose');
 
 router.get('/', (req, res) => {
   User.find({}).then((users) => res.json(users));
@@ -109,7 +110,6 @@ router.post('/login', (req, res, next) => {
 router.get('/logout', (req, res, next) => {
   const { query } = req;
   const { token } = query;
-  console.log(token);
   UserSession.findOneAndUpdate(
     {
       _id: token,
@@ -121,17 +121,17 @@ router.get('/logout', (req, res, next) => {
       },
     },
     null,
-    (err, sessions) => {
+    () => {
       if (err) {
         console.log(err);
         return res.send({
           success: false,
-          message: 'Error: Server error',
+          message: 'error: server error',
         });
       }
       return res.send({
         success: true,
-        message: 'Good',
+        message: 'good',
       });
     }
   );
@@ -165,29 +165,30 @@ router.post('/signup', (req, res, next) => {
       if (err) {
         return res.send({
           success: false,
-          message: 'Error: Server error',
+          message: 'error: server error',
         });
       } else if (previousUsers.length > 0) {
         return res.send({
           success: false,
-          message: 'Error: Account already exist.',
+          message: 'error: account already exists.',
         });
       }
 
       const newUser = new User();
       newUser.username = username;
       newUser.password = newUser.generateHash(password);
+      newUser._id = mongoose.Types.ObjectId();
       newUser.save((err, user) => {
         if (err) {
           console.log(err);
           return res.send({
             success: false,
-            message: 'Error: Server error',
+            message: 'error: server error',
           });
         }
         return res.send({
           success: true,
-          message: 'Signed up',
+          message: 'signed up',
         });
       });
     }
