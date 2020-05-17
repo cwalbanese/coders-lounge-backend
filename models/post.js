@@ -5,7 +5,7 @@ const PostSchema = new mongoose.Schema({
   post: { type: String },
   comments: [
     {
-      text: String,
+      type: String,
     },
   ],
   rating: { type: Number, default: 0 },

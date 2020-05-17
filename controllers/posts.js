@@ -19,7 +19,7 @@ router.put('/update/:id', (req, res) => {
     {
       _id: req.params.id,
     },
-    { $set: req.body },
+    { $push: { comments: req.body } },
     { new: true }
   ).then((post) => res.json(post));
 });
