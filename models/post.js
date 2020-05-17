@@ -2,11 +2,10 @@ const mongoose = require('../db/connection');
 
 const PostSchema = new mongoose.Schema({
   username: { type: String, required: true },
-  post: { type: String, required: true },
+  post: { type: String },
   comments: [
     {
       text: String,
-      userId: String,
     },
   ],
   rating: { type: Number, default: 0 },
