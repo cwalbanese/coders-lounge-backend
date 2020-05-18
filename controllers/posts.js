@@ -24,6 +24,16 @@ router.put('/update/:id', (req, res) => {
   ).then((post) => res.json(post));
 });
 
+router.put('/update/rating/:id', (req, res) => {
+  Post.findOneAndUpdate(
+    {
+      _id: req.params.id,
+    },
+    { $set: { rating: req.body[0] } },
+    { new: true }
+  ).then((like) => res.json(like));
+});
+
 router.delete('/delete/:id', (req, res) => {
   Post.deleteOne({ _id: req.params.id }).then((post) => res.json(post));
 });
